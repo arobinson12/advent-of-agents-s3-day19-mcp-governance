@@ -1,0 +1,29 @@
+{
+  "serviceId": "finserv-ledger-mcp",
+  "displayName": "FinServ Production Ledger MCP",
+  "description": "Admin-approved MCP server for verifying ledger transactions and audit trails",
+  "version": "1.0.0",
+  "mcpServerSpec": {
+    "type": "TOOL_SPEC",
+    "content": {
+      "tools": [
+        {
+          "name": "verify_ledger_transaction",
+          "description": "Verifies financial ledger transactions, audit timestamps, and cryptographic signature validity across FinServ core ledgers.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "transaction_id": {
+                "type": "string",
+                "description": "The transaction identifier to verify (e.g., TX-9941)"
+              }
+            },
+            "required": [
+              "transaction_id"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
