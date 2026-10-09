@@ -62,7 +62,7 @@ echo -e "${GREEN}[THE GOVERNANCE FIX: 5 PILLARS]${NC}"
 echo -e "  1. Tool Registry Onboarding: All 3 paths (1P Auto-Discovery, Compute Auto-Discovery, Declarative ToolSpec)."
 echo -e "  2. Agent Registry Remote MCP Server: Universal discovery gateway (https://agentregistry.googleapis.com/mcp)."
 echo -e "  3. Outbound Bindings & Managed Auth: Explicit authorization linking agents to vetted tools."
-echo -e "  4. Dynamic Runtime Invocation: Google ADK + Gemini 2.5 Pro binding toolsets on-the-fly."
+echo -e "  4. Dynamic Runtime Invocation: Google ADK + Gemini 3.8 Flash binding toolsets on-the-fly."
 echo -e "  5. Scale Management & Perimeter Protection: Zero-downtime cutover, instant kill-switch, Model Armor Floor Settings."
 echo ""
 

@@ -3,7 +3,7 @@
 [![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Agent%20Registry-blue.svg)](https://cloud.google.com/agent-registry)
 [![Model Armor](https://img.shields.io/badge/Model%20Armor-INSPECT__AND__BLOCK-red.svg)](https://cloud.google.com/security/model-armor)
 [![Google ADK](https://img.shields.io/badge/Google%20ADK-Agent%20Development%20Kit-green.svg)](https://github.com/google/adk)
-[![Gemini 2.5 Pro](https://img.shields.io/badge/Vertex%20AI-Gemini%202.5%20Pro-orange.svg)](https://cloud.google.com/vertex-ai)
+[![Gemini 3.8 Flash](https://img.shields.io/badge/Vertex%20AI-Gemini%203.8%20Flash-orange.svg)](https://cloud.google.com/vertex-ai)
 
 > **Eliminating Hardcoded Tool Endpoints in Autonomous AI Agents using Google Cloud Agent Registry, Outbound Bindings, and Model Armor.**
 
@@ -48,7 +48,7 @@ graph TD
         ADK["Autonomous ADK Agent<br/>(ZERO Hardcoded Tool URLs)"]
         REG_LOOKUP["Step 1: fetch_available_bindings<br/>Step 2: search_mcp_servers"]
         CR["Cloud Run Streamable HTTP MCP<br/>(v1 Legacy / v2 Hardened)"]
-        GEM["Gemini 2.5 Pro Reasoning<br/>(Vertex AI Engine)"]
+        GEM["Gemini 3.8 Flash Reasoning<br/>(Vertex AI Engine)"]
         
         ADK -->|Query Gateway| REG_LOOKUP
         REG_LOOKUP -->|Dynamic Endpoint & Auth| ADK
@@ -67,7 +67,7 @@ graph TD
 | **1. Tool Registry Onboarding** | All 3 Ingestion Paths | **Path 1:** 1P GCP Auto-Discovery (enabling BigQuery/Vertex APIs).<br>**Path 2:** Compute Auto-Discovery (`--functional-type=mcp-server` on Cloud Run, `registry.gke.io/functional-type: "MCP_SERVER"` on GKE).<br>**Path 3:** Declarative Custom ToolSpec (`toolspec.json` via `create_service`). |
 | **2. Agent Registry MCP** | Remote Governance Gateway | Built-in meta-tools exposed at `https://agentregistry.googleapis.com/mcp` (`search_mcp_servers`, `create_service`, `create_binding`, `fetch_available_bindings`, `delete_binding`). |
 | **3. Outbound Bindings** | Explicit Zero-Trust Authorization | Policy whitelist linking `urn:agent:finserv-auditor` to `urn:mcp:finserv-ledger` with native `AuthProviderBinding` (managed API Keys / OAuth). Agents never store secrets in code. |
-| **4. Dynamic ADK Invocation** | Zero Hardcoded URLs | Google ADK dynamically evaluates Outbound Bindings, discovers endpoints at runtime, binds `McpToolset`, and audits transactions via Gemini 2.5 Pro. |
+| **4. Dynamic ADK Invocation** | Zero Hardcoded URLs | Google ADK dynamically evaluates Outbound Bindings, discovers endpoints at runtime, binds `McpToolset`, and audits transactions via Gemini 3.8 Flash. |
 | **5. Managing Tools at Scale** | Cutover, Kill-Switch & Floor Settings | Zero-downtime cutover (`cutover-v2`), central rogue tool quarantine (`revoke`), and project-wide Model Armor Floor Settings (`INSPECT_AND_BLOCK`). |
 
 ---
@@ -199,7 +199,7 @@ python3 dynamic_mcp_agent.py
 *Output Workflow:*
 * **[Step 1]**: Calls `fetch_available_bindings` to verify approved authorization to `urn:mcp:finserv-ledger`.
 * **[Step 2]**: Calls `search_mcp_servers` to dynamically resolve the live `v1.0-LEGACY` endpoint.
-* **[Step 3]**: Attaches managed auth credentials and verifies transaction `TX-9941` with Gemini 2.5 Pro.
+* **[Step 3]**: Attaches managed auth credentials and verifies transaction `TX-9941` with Gemini 3.8 Flash.
 
 #### Act 3: Zero-Downtime Governance Cutover (v1 -> v2)
 SecOps upgrades the production tool to `v2.0-ZERO-TRUST-HARDENED` with Post-Quantum Cryptography (ML-DSA-65 signatures). The Outbound Binding is preserved:

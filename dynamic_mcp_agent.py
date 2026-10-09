@@ -12,7 +12,7 @@ Autonomous ADK Agent that:
 1. Validates approved Outbound Bindings via Agent Registry Remote MCP Server:
    https://agentregistry.googleapis.com/mcp
 2. Dynamically discovers enterprise MCP tools at runtime (Zero hardcoded URLs).
-3. Executes governed financial auditing with Gemini 2.5 Pro and Google ADK.
+3. Executes governed financial auditing with Gemini 3.8 Flash and Google ADK.
 """
 
 import asyncio
@@ -85,10 +85,11 @@ def resolve_project_environment() -> Tuple[str, str, str]:
 
 PROJECT_ID, REGION, PROJECT_NUMBER = resolve_project_environment()
 
-# Configure Vertex AI backend
+# Configure Vertex AI backend (Gemini 3.8 Flash uses global endpoint)
+MODEL_LOCATION = os.environ.get("MODEL_LOCATION", "global")
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
 os.environ["GOOGLE_CLOUD_PROJECT"] = PROJECT_ID
-os.environ["GOOGLE_CLOUD_LOCATION"] = REGION
+os.environ["GOOGLE_CLOUD_LOCATION"] = MODEL_LOCATION
 os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = "never"
 os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
@@ -277,7 +278,7 @@ async def run_governed_adk_agent(query: str = "Verify ledger transaction TX-9941
         f"[bold blue]🚀 Initializing Autonomous ADK Agent[/bold blue]\n"
         f"Source Agent: [bold yellow]finserv-auditor[/bold yellow] ({SOURCE_AGENT_URN})\n"
         f"Prompt: [white]{query}[/white]\n"
-        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + ADK + Gemini 2.5 Pro[/bold magenta]",
+        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + ADK + Gemini 3.8 Flash[/bold magenta]",
         title="Governed Agent Execution",
         border_style="blue"
     ))
@@ -307,7 +308,7 @@ async def run_governed_adk_agent(query: str = "Verify ledger transaction TX-9941
     # Configure ADK Agent with dynamically bound toolset
     agent = Agent(
         name="FinServGovernanceAuditor",
-        model="gemini-2.5-pro",
+        model="gemini-3.8-flash",
         instruction=(
             "You are an enterprise financial auditor. When verifying ledger transactions, "
             "always call verify_ledger_transaction and report the exact status, server version, "
@@ -324,7 +325,7 @@ async def run_governed_adk_agent(query: str = "Verify ledger transaction TX-9941
         parts=[types.Part.from_text(text=f"{query}. Be specific about the server version and security audit notes.")]
     )
 
-    console.print("[dim]Executing Gemini 2.5 Pro via ADK Runner with dynamic tool verification...[/dim]")
+    console.print("[dim]Executing Gemini 3.8 Flash via ADK Runner with dynamic tool verification...[/dim]")
     agent_replies = []
     async for event in runner.run_async(session_id=session.id, user_id="secops_admin", new_message=user_content):
         if hasattr(event, "content") and event.content:
@@ -336,7 +337,7 @@ async def run_governed_adk_agent(query: str = "Verify ledger transaction TX-9941
 
     console.print(Panel(
         final_response,
-        title="[bold green]Gemini 2.5 Pro Verified Agent Response[/bold green]",
+        title="[bold green]Gemini 3.8 Flash Verified Agent Response[/bold green]",
         border_style="green"
     ))
     return final_response

@@ -20,7 +20,7 @@ SOURCE_AGENT_URN = os.environ.get("SOURCE_AGENT_URN", "urn:agent:finserv-auditor
 # Configure Vertex AI
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
 os.environ["GOOGLE_CLOUD_PROJECT"] = PROJECT_ID
-os.environ["GOOGLE_CLOUD_LOCATION"] = REGION
+os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ.get("MODEL_LOCATION", "global")
 os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = "never"
 os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
@@ -78,7 +78,7 @@ async def main():
 
     agent = Agent(
         name="FinServAuditor",
-        model="gemini-2.5-pro",
+        model="gemini-3.8-flash",
         instruction="Verify transactions using verify_ledger_transaction and return status and version.",
         tools=[toolset]
     )
