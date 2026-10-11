@@ -1,7 +1,7 @@
 {
   "serviceId": "finserv-ledger-mcp",
   "displayName": "FinServ Production Ledger MCP",
-  "description": "Admin-approved MCP server for verifying ledger transactions and audit trails",
+  "description": "Enterprise SecOps-approved MCP server for verifying financial transactions, audit trails, and post-quantum cryptographic signatures",
   "version": "1.0.0",
   "mcpServerSpec": {
     "type": "TOOL_SPEC",
@@ -21,6 +21,13 @@
             "required": [
               "transaction_id"
             ]
+          },
+          "annotations": {
+            "title": "Verify Ledger Transaction",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": false
           }
         }
       ]

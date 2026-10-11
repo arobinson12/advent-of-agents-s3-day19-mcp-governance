@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finserv-ledger-mcp
+  namespace: finserv-workloads
+  labels:
+    app: finserv-ledger-mcp
+    # PIPELINE 1: GKE Compute Auto-Discovery Label for MCP Server
+    registry.gke.io/functional-type: "MCP_SERVER"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: finserv-ledger-mcp
+  template:
+    metadata:
+      labels:
+        app: finserv-ledger-mcp
+        registry.gke.io/functional-type: "MCP_SERVER"
+      annotations:
+        modelcontextprotocol.info/urls: "http://finserv-ledger-mcp.finserv-workloads.svc.cluster.local:8080/mcp"
+        modelcontextprotocol.info/transport: "streamable-http"
+    spec:
+      containers:
+      - name: mcp-server
+        image: gcr.io/bu2-prod-data/finserv-ledger-mcp:v2.0
+        ports:
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finserv-auditor-agent
+  namespace: finserv-workloads
+  labels:
+    app: finserv-auditor-agent
+    # PIPELINE 1: GKE Compute Auto-Discovery Label for Autonomous Agent
+    registry.gke.io/functional-type: "AGENT"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finserv-auditor-agent
+  template:
+    metadata:
+      labels:
+        app: finserv-auditor-agent
+        registry.gke.io/functional-type: "AGENT"
+      annotations:
+        a2a-protocol.org/agent-card: "http://finserv-auditor-agent.finserv-workloads.svc.cluster.local:8080/.well-known/agent-card.json"
+        a2a-protocol.org/transport: "jsonrpc"
+    spec:
+      containers:
+      - name: auditor-agent
+        image: gcr.io/bu2-prod-data/finserv-auditor-agent:v1.0
+        ports:
+        - containerPort: 8080

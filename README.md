@@ -9,49 +9,46 @@
 
 ---
 
-## Overview & Architecture
+## Overview & Architecture: The CQRS Data Model
 
 In production AI systems, **hardcoded tool URLs are an anti-pattern**:
 * **Configuration Debt & Fragility:** Tool endpoints migrate, scale, or rotate certificates. Hardcoded URLs break client agents and force code redeployments.
 * **Shadow AI & Tool Sprawl:** SecOps loses visibility into what tools agents call and what permissions they possess.
 * **Perimeter Vulnerabilities:** Without central governance and perimeter inspection, agents are vulnerable to indirect prompt injection, rogue tool substitution, and sensitive data leakage.
 
-Google Cloud **Agent Registry Remote MCP Server** (`https://agentregistry.googleapis.com/mcp`) solves this by acting as a **centralized, zero-trust control plane** for Model Context Protocol (MCP) servers, backed by **Outbound Bindings** and **Model Armor Floor Settings**.
+Google Cloud **Agent Registry Remote MCP Server** (`https://agentregistry.googleapis.com/mcp`) implements a **CQRS (Command Query Responsibility Segregation) architecture**:
+1. **Writable Control Plane (`services/*`, `bindings/*`):** Platform engineers and SecOps manage workloads via declarative specs, Terraform IaC, or compute auto-ingest.
+2. **Projected Read-Only Catalog (`mcpServers/*`, `agents/*`, `endpoints/*`):** Consumer agents query indexed URNs, dynamic connection interfaces, and schema capabilities with zero hardcoded URLs.
+3. **Outbound Bindings & Perimeter Enforcement:** Explicit policy whitelist linking autonomous agents to vetted tools, protected by **Model Armor Floor Settings** (`GOOGLE_MCP_SERVER = INSPECT_AND_BLOCK`).
 
 ```mermaid
 graph TD
-    subgraph CP["Control Plane & Perimeter Defense"]
+    subgraph CP["Control Plane (Write Side) & Perimeter Defense"]
         MA["Model Armor Floor Settings<br/>(GOOGLE_MCP_SERVER = INSPECT_AND_BLOCK)"]
         
-        subgraph TR["Tool Registry: 3 Onboarding Paths"]
-            P1["Path 1: 1P GCP Auto-Discovery<br/>(BigQuery, Spanner, Vertex AI)"]
-            P2["Path 2: Compute Auto-Discovery<br/>(Cloud Run --functional-type=mcp-server / GKE)"]
-            P3["Path 3: Declarative Custom ToolSpec<br/>(toolspec.json / create_service)"]
+        subgraph IP["3 Ingestion Pipelines at Scale"]
+            P1["Pipeline 1: Zero-Touch Auto-Ingest<br/>(Cloud Run --functional-type / GKE Labels)"]
+            P2["Pipeline 2: Declarative Specs API<br/>(specs/toolspec.json & specs/agent-card.json)"]
+            P3["Pipeline 3: GitOps IaC<br/>(terraform/main.tf google_agent_registry_*)"]
         end
         
-        REG["Agent Registry Remote MCP Gateway<br/>https://agentregistry.googleapis.com/mcp"]
-        
-        subgraph OB["Outbound Bindings & Managed Auth"]
-            SRC["Source Agent URN<br/>urn:agent:finserv-auditor"]
-            TGT["Target Tool URN<br/>urn:mcp:finserv-ledger"]
-            AP["AuthProviderBinding<br/>authProviders/finserv-ledger-api-key"]
-            SRC -->|create_binding| TGT
-            TGT --- AP
-        end
-        
-        MA --> REG
-        TR --> REG
-        REG --> OB
+        SVC["Writable Services & Outbound Bindings<br/>projects/*/locations/*/services/* & bindings/*"]
+        IP --> SVC
+        MA --> SVC
+    end
+
+    subgraph CQRS["Agent Registry Remote MCP Gateway (https://agentregistry.googleapis.com/mcp)"]
+        SVC -->|CQRS Projection| CAT["Projected Read-Only Catalog<br/>mcpServers/* | agents/* | endpoints/*"]
+        BIND["Policy Whitelist & Managed Auth<br/>fetch_available_bindings"]
     end
 
     subgraph RUN["Runtime Dynamic Invocation"]
         ADK["Autonomous ADK Agent<br/>(ZERO Hardcoded Tool URLs)"]
-        REG_LOOKUP["Step 1: fetch_available_bindings<br/>Step 2: search_mcp_servers"]
-        CR["Cloud Run Streamable HTTP MCP<br/>(v1 Legacy / v2 Hardened)"]
+        CR["Cloud Run Streamable HTTP MCP<br/>(v1 Legacy ➔ v2 Hardened)"]
         GEM["Gemini 3.8 Flash Reasoning<br/>(Vertex AI Engine)"]
         
-        ADK -->|Query Gateway| REG_LOOKUP
-        REG_LOOKUP -->|Dynamic Endpoint & Auth| ADK
+        ADK -->|Step 1: Check Bindings & Step 2: Discover URL| CQRS
+        CQRS -->|Dynamic Endpoint & Token| ADK
         ADK -->|Step 3: Invoke verify_ledger_transaction| CR
         CR -->|Verified Execution| GEM
         GEM -->|Audited Report| ADK
@@ -60,15 +57,13 @@ graph TD
 
 ---
 
-## The 5 Day 19 Pillars
+## The 3 Enterprise Onboarding Pipelines
 
-| Pillar | Capability | Description |
-|---|---|---|
-| **1. Tool Registry Onboarding** | All 3 Ingestion Paths | **Path 1:** 1P GCP Auto-Discovery (enabling BigQuery/Vertex APIs).<br>**Path 2:** Compute Auto-Discovery (`--functional-type=mcp-server` on Cloud Run, `registry.gke.io/functional-type: "MCP_SERVER"` on GKE).<br>**Path 3:** Declarative Custom ToolSpec (`toolspec.json` via `create_service`). |
-| **2. Agent Registry MCP** | Remote Governance Gateway | Built-in meta-tools exposed at `https://agentregistry.googleapis.com/mcp` (`search_mcp_servers`, `create_service`, `create_binding`, `fetch_available_bindings`, `delete_binding`). |
-| **3. Outbound Bindings** | Explicit Zero-Trust Authorization | Policy whitelist linking `urn:agent:finserv-auditor` to `urn:mcp:finserv-ledger` with native `AuthProviderBinding` (managed API Keys / OAuth). Agents never store secrets in code. |
-| **4. Dynamic ADK Invocation** | Zero Hardcoded URLs | Google ADK dynamically evaluates Outbound Bindings, discovers endpoints at runtime, binds `McpToolset`, and audits transactions via Gemini 3.8 Flash. |
-| **5. Managing Tools at Scale** | Cutover, Kill-Switch & Floor Settings | Zero-downtime cutover (`cutover-v2`), central rogue tool quarantine (`revoke`), and project-wide Model Armor Floor Settings (`INSPECT_AND_BLOCK`). |
+| Pipeline | Target Workload | Implementation & Artifacts | Enterprise Advantage |
+|---|---|---|---|
+| **Pipeline 1: Zero-Touch Compute Auto-Discovery** | Cloud Run & GKE (MCP Servers & Agents) | **Cloud Run:** `--functional-type=mcp-server`<br>or `--functional-type=agent --identity-type=agent-identity`<br>**GKE:** Label `registry.gke.io/functional-type: "MCP_SERVER"` (`k8s/gke-auto-register.yaml`). | Automated continuous cataloging as workloads deploy. Zero manual registration steps. |
+| **Pipeline 2: Declarative Services API & CLI** | Custom Tools, A2A Agents, & REST Endpoints | **MCP:** `specs/toolspec.json` (`mcpServerSpec.type = TOOL_SPEC`)<br>**Agent:** `specs/agent-card.json` (`agentSpec.type = A2A_AGENT_CARD`)<br>**REST:** `swift-sanctions-api` (`endpointSpec.type = NO_SPEC`). | Central SecOps vetting of third-party APIs, SaaS, legacy endpoints, and custom agents. |
+| **Pipeline 3: GitOps & Terraform IaC** | Enterprise Fleet Infrastructure | **HCL:** `terraform/main.tf`<br>`resource "google_agent_registry_service"`<br>`resource "google_agent_registry_binding"` | Reproducible CI/CD pipelines, peer-reviewed Git pull requests, and automated compliance. |
 
 ---
 
@@ -77,19 +72,28 @@ graph TD
 ```
 .
 ├── README.md                   # Complete architectural guide & 5-minute quickstart
-├── toolspec.json               # Declarative ToolSpec schema (Path 3 Onboarding)
-├── deploy_cloud_run_mcp.sh     # Cloud Run deployment script with auto-discovery flags (Path 2)
+├── specs/
+│   ├── toolspec.json           # Declarative MCP ToolSpec schema with behavioral hints (Pipeline 2)
+│   └── agent-card.json         # Official A2A v1.0 Agent Card specification (Pipeline 2)
+├── terraform/
+│   ├── main.tf                 # Terraform IaC for Agent Registry services & bindings (Pipeline 3)
+│   ├── variables.tf            # Parameterized GCP variables
+│   └── outputs.tf              # URN and Binding resource outputs
+├── k8s/
+│   └── gke-auto-register.yaml  # GKE Deployment manifests with auto-discovery labels (Pipeline 1)
+├── deploy_cloud_run_mcp.sh     # Cloud Run deployment script with auto-discovery flags (Pipeline 1)
 ├── registry_control_plane.py   # Admin CLI executing Agent Registry Remote MCP tools & bindings
 ├── dynamic_mcp_agent.py        # Governed ADK Agent with Outbound Bindings & ZERO hardcoded URLs
-├── run_day19_stage_show.sh     # Interactive / non-interactive 4-act theatrical runner
-├── requirements.txt            # Python dependencies (google-adk, fastmcp, rich, etc.)
+├── stage_show_driver.py        # Theatrical Stage Show Driver (Simulated Typing + Persistent HUD)
+├── run_day19_stage_show.sh     # Wrapper script for running the studio recording stage show
+├── requirements.txt            # Python dependencies (google-adk, fastmcp, rich, httpx, etc.)
 ├── .env.example                # Customer environment configuration template
 ├── mcp_servers/
 │   ├── ledger_v1/              # Streamable HTTP MCP Server v1.0 Legacy (Cloud Run)
 │   └── ledger_v2/              # Streamable HTTP MCP Server v2.0 Post-Quantum Hardened (Cloud Run)
 └── kata/
     ├── discover_and_govern_mcp.sh # 300-second curl workflow script
-    └── dynamic_mcp_agent.py       # Concise, copy-pasteable dynamic ADK agent with bindings
+    └── dynamic_mcp_agent.py       # Concise dynamic ADK agent with bindings
 ```
 
 ---
@@ -128,15 +132,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Deploy Cloud Run MCP Servers (Path 2: Compute Auto-Discovery)
+### 3. Deploy Cloud Run MCP Servers (Pipeline 1: Compute Auto-Discovery)
 
 Deploy the sample FastMCP servers (`v1` and `v2`) with the `--functional-type=mcp-server` discovery flag:
 
 ```bash
 ./deploy_cloud_run_mcp.sh
 ```
-
-Copy the generated `LEDGER_V1_URL` and `LEDGER_V2_URL` outputs into `.env` (or let the scripts discover them automatically).
 
 ### 4. Configure Model Armor Floor Settings
 
@@ -160,71 +162,50 @@ curl -X PATCH \
 
 ---
 
-## Running the 4-Act Stage Show
+## Running the Theatrical Stage Show
 
-You can run the entire show interactively:
+The stage show includes **simulated human typing** and a **persistent visual Governance Control Plane HUD** on screen:
+
 ```bash
+# 1. Default Recording Mode (Auto-types command on [ENTER] or [SPACE]):
 ./run_day19_stage_show.sh
-```
-Or run the non-interactive automated test:
-```bash
+
+# 2. Live Keypress Mode (Tap any keyboard keys to type command live on screen):
+./run_day19_stage_show.sh --live-keys
+
+# 3. Headless Automated Verification Mode:
 ./run_day19_stage_show.sh --non-interactive
 ```
 
-### Detailed Act-by-Act Guide
+### The 4 Acts & 10 Auto-Typed Commands
 
-#### Act 1: The Trap, Tool Registry Onboarding & Outbound Bindings
-Show how hardcoded endpoints introduce vulnerabilities and explore the Agent Registry control plane:
+#### Act 1: The Problem & Scale Architecture (Commands 1–3)
+1. `python3 registry_control_plane.py show-onboarding-specs`  
+   *Examines all 3 Onboarding Pipelines, ToolSpec schemas, Agent Cards, and Terraform IaC.*
+2. `python3 registry_control_plane.py list-meta-tools`  
+   *Discovers the 20 built-in governance tools on `https://agentregistry.googleapis.com/mcp`.*
+3. `python3 registry_control_plane.py onboard-all`  
+   *Onboards MCP Server (`v1.0`), A2A Agent, REST Endpoint, and Outbound Binding.*
 
-```bash
-# 1. Discover built-in governance tools on Agent Registry Remote MCP Server
-python3 registry_control_plane.py list-meta-tools
+#### Act 2: Zero-Hardcoded-URL Autonomous Execution (Commands 4–5)
+4. `python3 registry_control_plane.py inspect-catalog`  
+   *Inspects CQRS Projection table mapping writable services to read-only collections.*
+5. `python3 dynamic_mcp_agent.py`  
+   *Executes governed ADK agent resolving approved bindings and verifying ledger transactions via Gemini 3.8 Flash.*
 
-# 2. Review all 3 Tool Registry Onboarding Paths
-python3 registry_control_plane.py explain-paths
+#### Act 3: Zero-Downtime Governance Cutover (Commands 6–7)
+6. `python3 registry_control_plane.py cutover-v2`  
+   *Promotes `v2.0-ZERO-TRUST-HARDENED` endpoint. Proves Logical URN and Binding stay 100% invariant.*
+7. `python3 dynamic_mcp_agent.py`  
+   *Executes same agent with ZERO code changes. Seamlessly routes to v2.*
 
-# 3. Register FinServ Ledger MCP (Path 3 ToolSpec) and Outbound Binding
-python3 registry_control_plane.py register-v1
-
-# 4. Inspect active Outbound Bindings
-python3 registry_control_plane.py inspect-bindings
-```
-
-#### Act 2: Dynamic Outbound Binding Resolution (Zero Hardcoded URLs)
-Execute the client agent. Observe how `dynamic_mcp_agent.py` contains **zero hardcoded URLs**:
-
-```bash
-python3 dynamic_mcp_agent.py
-```
-*Output Workflow:*
-* **[Step 1]**: Calls `fetch_available_bindings` to verify approved authorization to `urn:mcp:finserv-ledger`.
-* **[Step 2]**: Calls `search_mcp_servers` to dynamically resolve the live `v1.0-LEGACY` endpoint.
-* **[Step 3]**: Attaches managed auth credentials and verifies transaction `TX-9941` with Gemini 3.8 Flash.
-
-#### Act 3: Zero-Downtime Governance Cutover (v1 -> v2)
-SecOps upgrades the production tool to `v2.0-ZERO-TRUST-HARDENED` with Post-Quantum Cryptography (ML-DSA-65 signatures). The Outbound Binding is preserved:
-
-```bash
-# Admin performs cutover in central registry
-python3 registry_control_plane.py cutover-v2
-
-# Run the exact same agent without changing a single line of client code!
-python3 dynamic_mcp_agent.py
-```
-*Output:* Agent immediately discovers the v2 endpoint and receives the post-quantum hardened verification response!
-
-#### Act 4: Outbound Binding Revocation & Instant Kill-Switch
-SecOps detects a rogue tool or policy breach and triggers the emergency kill-switch:
-
-```bash
-# Admin revokes Outbound Binding and Service registration
-python3 registry_control_plane.py revoke
-
-# Agent attempts execution
-python3 dynamic_mcp_agent.py
-```
-*Output:* Central registry returns 0 approved Outbound Bindings. Execution is immediately blocked at Step 1:
-`[POLICY ENFORCEMENT BLOCK] Central Governance revoked Outbound Binding for 'urn:agent:finserv-auditor'! 0 approved Outbound Bindings found.`
+#### Act 4: Emergency Revocation & Model Armor Kill Switch (Commands 8–10)
+8. `python3 registry_control_plane.py revoke`  
+   *SecOps emergency kill switch deletes Outbound Binding and Service registration.*
+9. `python3 dynamic_mcp_agent.py`  
+   *Agent attempts tool execution and is instantly blocked at runtime by Central Governance.*
+10. `python3 registry_control_plane.py onboard-all`  
+    *Resets environment to clean v1 ready-state for the next recording take.*
 
 ---
 

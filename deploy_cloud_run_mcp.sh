@@ -1,23 +1,28 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Advent of Agents Season 3 — Day 19
-# Path 2: Compute Auto-Discovery (Cloud Run & GKE MCP Server Onboarding)
+# Pipeline 1: Zero-Touch Auto-Ingest (Cloud Run & GKE Workload Auto-Discovery)
 # ==============================================================================
 # This script deploys the sample FastMCP Streamable HTTP servers (v1 and v2)
-# to Google Cloud Run, demonstrating Path 2 of Tool Registry Onboarding.
+# to Google Cloud Run, demonstrating Pipeline 1 of Agent Registry Ingestion.
 #
-# GOOGLE CLOUD AUTO-DISCOVERY SPECS:
-# 1. Cloud Run Auto-Discovery:
-#    Deploy services with --functional-type=mcp-server (or labels:
-#    --set-labels=registry.cloud.google.com/functional-type=mcp-server).
-#    Google Cloud Agent Registry automatically detects and catalogs these services.
+# GOOGLE CLOUD AUTO-DISCOVERY FLAGS & LABELS:
+# 1. Cloud Run MCP Server Auto-Discovery:
+#    gcloud run deploy finserv-ledger-mcp \
+#      --image=... \
+#      --functional-type=mcp-server \
+#      --set-labels="registry.cloud.google.com/functional-type=mcp-server"
 #
-# 2. GKE Workload Auto-Discovery:
-#    For GKE clusters, annotate your Kubernetes Deployment/Pod specs with:
-#      metadata:
-#        labels:
-#          registry.gke.io/functional-type: "MCP_SERVER"
-#    The Agent Registry GKE operator automatically surfaces them in the registry.
+# 2. Cloud Run Autonomous Agent Auto-Discovery:
+#    gcloud run deploy finserv-auditor-agent \
+#      --image=... \
+#      --functional-type=agent \
+#      --identity-type=agent-identity \
+#      --set-labels="registry.cloud.google.com/functional-type=agent"
+#
+# 3. GKE Workload Auto-Discovery:
+#    See k8s/gke-auto-register.yaml for:
+#      registry.gke.io/functional-type: "MCP_SERVER" | "AGENT"
 # ==============================================================================
 
 set -eo pipefail
@@ -31,7 +36,7 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 echo "================================================================================"
-echo " Deploying FastMCP Ledger Servers to Cloud Run (Path 2: Compute Auto-Discovery) "
+echo " Deploying FastMCP Ledger Servers to Cloud Run (Pipeline 1: Auto-Discovery) "
 echo " Project: $PROJECT_ID | Region: $REGION"
 echo "================================================================================"
 
