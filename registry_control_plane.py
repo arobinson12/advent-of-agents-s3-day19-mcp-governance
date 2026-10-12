@@ -120,7 +120,39 @@ def get_oauth_token() -> str:
         sys.exit(1)
 
 
-def call_registry_mcp(method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def print_api_request(url: str, body: Dict[str, Any], title: Optional[str] = None):
+    """Render the exact outgoing HTTP POST request and JSON-RPC payload for camera inspection."""
+    token = get_oauth_token()
+    token_display = f"Bearer {token[:14]}...{token[-6:]}" if len(token) > 25 else "Bearer <token>"
+
+    headers_info = (
+        f"  [bold yellow]Authorization:[/bold yellow] [dim]{token_display} (Google OAuth2 Access Token)[/dim]\n"
+        f"  [bold yellow]x-goog-user-project:[/bold yellow] [bold white]{PROJECT_ID}[/bold white]\n"
+        f"  [bold yellow]Content-Type:[/bold yellow] [dim]application/json[/dim]"
+    )
+
+    body_str = json.dumps(body, indent=2)
+
+    call_title = title
+    if not call_title:
+        if body.get("method") == "tools/call" and "params" in body:
+            tool_name = body["params"].get("name", "tool")
+            call_title = f"[bold cyan]📡 API Request: tools/call ➔ {tool_name}[/bold cyan]"
+        elif body.get("method") == "tools/list":
+            call_title = "[bold cyan]📡 API Request: tools/list (Enumerate Meta-Tools)[/bold cyan]"
+        else:
+            call_title = f"[bold cyan]📡 API Request: {body.get('method', 'MCP')}[/bold cyan]"
+
+    console.print(Panel(
+        f"[bold green]POST[/bold green] [cyan]{url}[/cyan]\n\n"
+        f"[bold underline yellow]HTTP Request Headers:[/bold underline yellow]\n{headers_info}\n\n"
+        f"[bold underline yellow]JSON-RPC 2.0 Request Body:[/bold underline yellow]\n[white]{body_str}[/white]",
+        title=call_title,
+        border_style="dim cyan"
+    ))
+
+
+def call_registry_mcp(method: str, params: Optional[Dict[str, Any]] = None, show_api_call: bool = True) -> Dict[str, Any]:
     """Execute a JSON-RPC 2.0 call against Google Cloud Agent Registry MCP Server."""
     token = get_oauth_token()
     headers = {
@@ -137,6 +169,9 @@ def call_registry_mcp(method: str, params: Optional[Dict[str, Any]] = None) -> D
     }
     if params:
         body["params"] = params
+
+    if show_api_call:
+        print_api_request(AGENT_REGISTRY_MCP_URL, body)
 
     with httpx.Client(timeout=30.0) as client:
         resp = client.post(AGENT_REGISTRY_MCP_URL, json=body, headers=headers)
@@ -353,11 +388,11 @@ def onboard_all():
         border_style="blue"
     ))
 
-    # Query existing services
+    # Query existing services (pre-flight check)
     services_res = call_registry_mcp("tools/call", {
         "name": "list_services",
         "arguments": {"parent": PARENT}
-    })
+    }, show_api_call=False)
     content_raw = services_res.get("content", [{}])[0].get("text", "{}")
     existing_services = json.loads(content_raw).get("services", [])
     existing_names = [s.get("name") for s in existing_services]
@@ -455,11 +490,11 @@ def onboard_all():
     else:
         console.print(f"[green]✓ REST Endpoint Service '{REST_ENDPOINT_ID}' already active.[/green]")
 
-    # 4. Create Outbound Binding with Managed Auth Provider
+    # 4. Create Outbound Binding with Managed Auth Provider (pre-flight check)
     bindings_res = call_registry_mcp("tools/call", {
         "name": "list_bindings",
         "arguments": {"parent": PARENT}
-    })
+    }, show_api_call=False)
     b_content_raw = bindings_res.get("content", [{}])[0].get("text", "{}")
     existing_bindings = json.loads(b_content_raw).get("bindings", [])
     binding_exists = any(

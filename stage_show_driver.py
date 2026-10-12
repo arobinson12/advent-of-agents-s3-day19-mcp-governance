@@ -60,14 +60,13 @@ def read_single_key() -> str:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
-def print_hud(act_title: str, step_desc: str, hud_state: Dict[str, str]):
+def print_hud(stage_title: str, step_desc: str, hud_state: Dict[str, str]):
     """Render persistent visual Governance Control Plane HUD panel on screen."""
     hud_table = Table.grid(expand=True)
     hud_table.add_column(style="bold yellow", width=24)
     hud_table.add_column(style="white", width=86)
 
-    hud_table.add_row("Current Stage:", f"[bold cyan]{act_title}[/bold cyan] ➔ [white]{step_desc}[/white]")
-    hud_table.add_row("CQRS Data Model:", "Writable [yellow]services/*, bindings/*[/yellow] ➔ Read-Only [green]mcpServers/*, agents/*, endpoints/*[/green]")
+    hud_table.add_row("Current Stage:", f"[bold cyan]{stage_title}[/bold cyan] ➔ [white]{step_desc}[/white]")
     hud_table.add_row("Model Armor Floor:", f"[bold magenta]{hud_state.get('model_armor', 'GOOGLE_MCP_SERVER=INSPECT_AND_BLOCK')}[/bold magenta]")
     hud_table.add_row("Logical URN (Client):", f"[bold green]{hud_state.get('logical_urn', 'urn:mcp:projects-...:finserv-ledger-mcp')}[/bold green]")
     hud_table.add_row("Physical Tool URI:", f"[cyan]{hud_state.get('physical_uri', 'https://finserv-ledger-mcp-v1-.../mcp')}[/cyan]")
@@ -75,7 +74,7 @@ def print_hud(act_title: str, step_desc: str, hud_state: Dict[str, str]):
 
     console.print(Panel(
         hud_table,
-        title="[bold white]🛡️  ENTERPRISE GOVERNANCE CONTROL PLANE HUD[/bold white]",
+        title="[bold white]ENTERPRISE GOVERNANCE CONTROL PLANE HUD[/bold white]",
         border_style="cyan",
         subtitle="[dim]Google Cloud Agent Registry (agentregistry.googleapis.com/mcp) | Advent of Agents S3: Day 19[/dim]"
     ))
@@ -183,75 +182,75 @@ def run_stage_show(mode: str = "auto"):
     }
 
     # ==========================================================================
-    # ACT 1: The Problem & Scale Architecture (Commands 1-3)
+    # Stage 1: The Problem & Scale Architecture (Commands 1-3)
     # ==========================================================================
-    act1 = "ACT 1: The Problem & Scale Ingestion Architecture"
+    stage1 = "Stage 1: The Problem & Scale Ingestion Architecture"
     type_and_run(
         "python3 registry_control_plane.py show-onboarding-specs",
-        act1, 1, "Examine the 3 Onboarding Pipelines (Auto-Ingest, ToolSpec, Terraform IaC)",
+        stage1, 1, "Examine the 3 Onboarding Pipelines (Auto-Ingest, ToolSpec, Terraform IaC)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 registry_control_plane.py list-meta-tools",
-        act1, 2, "Enumerate 20 Built-in Governance Meta-Tools on Agent Registry Remote MCP",
+        stage1, 2, "Enumerate 20 Built-in Governance Meta-Tools on Agent Registry Remote MCP",
         hud_state, mode
     )
 
     type_and_run(
         "python3 registry_control_plane.py onboard-all",
-        act1, 3, "Onboard All 3 Service Types (MCP, Agent, REST) & Outbound Binding",
+        stage1, 3, "Onboard All 3 Service Types (MCP, Agent, REST) & Outbound Binding",
         hud_state, mode
     )
 
     # ==========================================================================
-    # ACT 2: Zero-Hardcoded-URL Autonomous Execution (Commands 4-5)
+    # Stage 2: Zero-Hardcoded-URL Autonomous Execution (Commands 4-5)
     # ==========================================================================
-    act2 = "ACT 2: Zero-Hardcoded-URL Autonomous Execution"
+    stage2 = "Stage 2: Zero-Hardcoded-URL Autonomous Execution"
     type_and_run(
         "python3 registry_control_plane.py inspect-catalog",
-        act2, 4, "Inspect CQRS Projection Table (Writable Services ➔ Read-Only Catalog)",
+        stage2, 4, "Inspect CQRS Projection Table (Writable Services ➔ Read-Only Catalog)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        act2, 5, "Execute Governed ADK Agent (Runtime Resolution via Gemini 3.8 Flash)",
+        stage2, 5, "Execute Governed ADK Agent (Runtime Resolution via Gemini 3.8 Flash)",
         hud_state, mode
     )
 
     # ==========================================================================
-    # ACT 3: Zero-Downtime Governance Cutover (Commands 6-7)
+    # Stage 3: Zero-Downtime Governance Cutover (Commands 6-7)
     # ==========================================================================
-    act3 = "ACT 3: Zero-Downtime Governance Cutover (v1 ➔ v2)"
+    stage3 = "Stage 3: Zero-Downtime Governance Cutover (v1 ➔ v2)"
     hud_state["physical_uri"] = f"[bold green]{ledger_v2_url} (v2 Post-Quantum Hardened)[/bold green]"
     type_and_run(
         "python3 registry_control_plane.py cutover-v2",
-        act3, 6, "Promote v2 Hardened Endpoint (Logical URN & Outbound Binding Invariance)",
+        stage3, 6, "Promote v2 Hardened Endpoint (Logical URN & Outbound Binding Invariance)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        act3, 7, "Execute Same Agent Without Any Code Modifications (Seamless v2 Routing)",
+        stage3, 7, "Execute Same Agent Without Any Code Modifications (Seamless v2 Routing)",
         hud_state, mode
     )
 
     # ==========================================================================
-    # ACT 4: Emergency Revocation & Model Armor Kill Switch (Commands 8-10)
+    # Stage 4: Emergency Revocation & Model Armor Kill Switch (Commands 8-10)
     # ==========================================================================
-    act4 = "ACT 4: Emergency Revocation & Model Armor Kill Switch"
+    stage4 = "Stage 4: Emergency Revocation & Model Armor Kill Switch"
     hud_state["binding_state"] = "[bold red]REVOKED / QUARANTINED (KILL SWITCH ENFORCED)[/bold red]"
     hud_state["physical_uri"] = "[bold red]BLOCKED / UNMAPPED[/bold red]"
     type_and_run(
         "python3 registry_control_plane.py revoke",
-        act4, 8, "SecOps Emergency Revocation (Purge Outbound Binding & MCP Service)",
+        stage4, 8, "SecOps Emergency Revocation (Purge Outbound Binding & MCP Service)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        act4, 9, "Agent Invocations Instantly Blocked at Runtime by Central Registry",
+        stage4, 9, "Agent Invocations Instantly Blocked at Runtime by Central Registry",
         hud_state, mode
     )
 
@@ -260,12 +259,12 @@ def run_stage_show(mode: str = "auto"):
     hud_state["physical_uri"] = ledger_v1_url
     type_and_run(
         "python3 registry_control_plane.py onboard-all",
-        act4, 10, "Reset Environment to Initial Clean v1 Ready-State for Next Recording Take",
+        stage4, 10, "Reset Environment to Initial Clean v1 Ready-State for Next Recording Take",
         hud_state, mode
     )
 
     console.print(Panel(
-        f"[bold green]✓ ALL 4 ACTS & 10 COMMANDS EXECUTED SUCCESSFULLY![/bold green]\n"
+        f"[bold green]✓ ALL 4 STAGES & 10 COMMANDS EXECUTED SUCCESSFULLY![/bold green]\n"
         f"Environment reset to clean v1 ready-state in project [bold yellow]{PROJECT_ID}[/bold yellow].\n"
         f"You are completely ready to film Advent of Agents Season 3 — Day 19!",
         title="🎬 Theatrical Stage Show Complete",

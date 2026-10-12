@@ -157,6 +157,21 @@ def call_registry_tool(tool_name: str, arguments: Dict) -> Dict:
         }
     }
 
+    token_display = f"Bearer {token[:14]}...{token[-6:]}" if len(token) > 25 else "Bearer <token>"
+    headers_info = (
+        f"  [bold yellow]Authorization:[/bold yellow] [dim]{token_display} (Google OAuth2 Access Token)[/dim]\n"
+        f"  [bold yellow]x-goog-user-project:[/bold yellow] [bold white]{PROJECT_ID}[/bold white]\n"
+        f"  [bold yellow]Content-Type:[/bold yellow] [dim]application/json[/dim]"
+    )
+
+    console.print(Panel(
+        f"[bold green]POST[/bold green] [cyan]{AGENT_REGISTRY_MCP_URL}[/cyan]\n\n"
+        f"[bold underline yellow]HTTP Request Headers:[/bold underline yellow]\n{headers_info}\n\n"
+        f"[bold underline yellow]JSON-RPC 2.0 Request Body:[/bold underline yellow]\n[white]{json.dumps(body, indent=2)}[/white]",
+        title=f"[bold cyan]📡 Runtime Governance Discovery API Call: tools/call ➔ {tool_name}[/bold cyan]",
+        border_style="dim cyan"
+    ))
+
     with httpx.Client(timeout=25.0) as client:
         resp = client.post(AGENT_REGISTRY_MCP_URL, json=body, headers=headers)
         if resp.status_code != 200:
