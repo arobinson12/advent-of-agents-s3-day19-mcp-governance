@@ -177,34 +177,36 @@ The stage show includes **simulated human typing** and a **persistent visual Gov
 ./run_day19_stage_show.sh --non-interactive
 ```
 
-### The 4 Stages & 10 Auto-Typed Commands
+### The 4 Stages & 11 Auto-Typed Commands
 
-#### Stage 1: The Problem & Scale Architecture (Commands 1–3)
-1. `python3 registry_control_plane.py show-onboarding-specs`  
+#### Stage 1: The Problem & Scale Architecture (Commands 1–4)
+1. `python3 registry_control_plane.py show-agent-code`  
+   *Inspects autonomous agent codebase, contrasting hardcoded URLs with dynamic Agent Registry governance.*
+2. `python3 registry_control_plane.py show-onboarding-specs`  
    *Examines all 3 Onboarding Pipelines, ToolSpec schemas, Agent Cards, and Terraform IaC.*
-2. `python3 registry_control_plane.py list-meta-tools`  
+3. `python3 registry_control_plane.py list-meta-tools`  
    *Discovers the 20 built-in governance tools on `https://agentregistry.googleapis.com/mcp`.*
-3. `python3 registry_control_plane.py onboard-all`  
+4. `python3 registry_control_plane.py onboard-all`  
    *Onboards MCP Server (`v1.0`), A2A Agent, REST Endpoint, and Outbound Binding.*
 
-#### Stage 2: Zero-Hardcoded-URL Autonomous Execution (Commands 4–5)
-4. `python3 registry_control_plane.py inspect-catalog`  
+#### Stage 2: Zero-Hardcoded-URL Autonomous Execution (Commands 5–6)
+5. `python3 registry_control_plane.py inspect-catalog`  
    *Inspects CQRS Projection table mapping writable services to read-only collections.*
-5. `python3 dynamic_mcp_agent.py`  
+6. `python3 dynamic_mcp_agent.py`  
    *Executes governed ADK agent resolving approved bindings and verifying ledger transactions via Gemini 3.8 Flash.*
 
-#### Stage 3: Zero-Downtime Governance Cutover (Commands 6–7)
-6. `python3 registry_control_plane.py cutover-v2`  
+#### Stage 3: Zero-Downtime Governance Cutover (Commands 7–8)
+7. `python3 registry_control_plane.py cutover-v2`  
    *Promotes `v2.0-ZERO-TRUST-HARDENED` endpoint. Proves Logical URN and Binding stay 100% invariant.*
-7. `python3 dynamic_mcp_agent.py`  
+8. `python3 dynamic_mcp_agent.py`  
    *Executes same agent with ZERO code changes. Seamlessly routes to v2.*
 
-#### Stage 4: Emergency Revocation & Model Armor Kill Switch (Commands 8–10)
-8. `python3 registry_control_plane.py revoke`  
+#### Stage 4: Emergency Revocation & Model Armor Kill Switch (Commands 9–11)
+9. `python3 registry_control_plane.py revoke`  
    *SecOps emergency kill switch deletes Outbound Binding and Service registration.*
-9. `python3 dynamic_mcp_agent.py`  
-   *Agent attempts tool execution and is instantly blocked at runtime by Central Governance.*
-10. `python3 registry_control_plane.py onboard-all`  
+10. `python3 dynamic_mcp_agent.py`  
+    *Agent attempts tool execution and is instantly blocked at runtime by Central Governance.*
+11. `python3 registry_control_plane.py onboard-all`  
     *Resets environment to clean v1 ready-state for the next recording take.*
 
 ---

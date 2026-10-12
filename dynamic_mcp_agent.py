@@ -160,7 +160,7 @@ def call_registry_tool(tool_name: str, arguments: Dict) -> Dict:
     token_display = f"Bearer {token[:14]}...{token[-6:]}" if len(token) > 25 else "Bearer <token>"
     headers_info = (
         f"  [bold yellow]Authorization:[/bold yellow] [dim]{token_display} (Google OAuth2 Access Token)[/dim]\n"
-        f"  [bold yellow]x-goog-user-project:[/bold yellow] [bold white]{PROJECT_ID}[/bold white]\n"
+        f"  [bold yellow]x-goog-user-project:[/bold yellow] [dim]<protected-enterprise-project>[/dim]\n"
         f"  [bold yellow]Content-Type:[/bold yellow] [dim]application/json[/dim]"
     )
 

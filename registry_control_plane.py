@@ -127,7 +127,7 @@ def print_api_request(url: str, body: Dict[str, Any], title: Optional[str] = Non
 
     headers_info = (
         f"  [bold yellow]Authorization:[/bold yellow] [dim]{token_display} (Google OAuth2 Access Token)[/dim]\n"
-        f"  [bold yellow]x-goog-user-project:[/bold yellow] [bold white]{PROJECT_ID}[/bold white]\n"
+        f"  [bold yellow]x-goog-user-project:[/bold yellow] [dim]<protected-enterprise-project>[/dim]\n"
         f"  [bold yellow]Content-Type:[/bold yellow] [dim]application/json[/dim]"
     )
 
@@ -247,12 +247,77 @@ def explain_onboarding_paths():
     show_onboarding_specs()
 
 
+def show_agent_code():
+    """Display the autonomous ADK agent code demonstrating zero hardcoded tool endpoints."""
+    console.print(Panel(
+        "[bold cyan]Autonomous Agent Code Architecture: Eliminating Hardcoded Tool Endpoints[/bold cyan]\n"
+        "Google Cloud Agent Registry replaces static, fragile URLs with dynamic discovery & outbound bindings.",
+        title="Agent Architecture Inspection",
+        border_style="cyan"
+    ))
+
+    # Architecture contrast table
+    contrast_table = Table(title="Architecture Evolution: Hardcoded vs Dynamic MCP Governance", show_header=True, header_style="bold magenta")
+    contrast_table.add_column("Pattern", style="bold yellow", width=22)
+    contrast_table.add_column("Implementation in Code", style="white", width=46)
+    contrast_table.add_column("Production Impact", style="dim cyan", width=34)
+
+    contrast_table.add_row(
+        "[bold red]❌ The Anti-Pattern[/bold red]\n(Hardcoded Tool URLs)",
+        "[red]toolset = McpToolset(\n  url='https://ledger-v1.run.app/mcp'\n)[/red]",
+        "• Breaks on URL/version upgrades\n• Requires redeploying agent code\n• Zero central SecOps revocation"
+    )
+    contrast_table.add_row(
+        "[bold green]✅ The Governed Pattern[/bold green]\n(Agent Registry Discovery)",
+        "[green]# Step 1: Query Outbound Binding\n# Step 2: Dynamically discover URL\nurl, binding = resolve_governed_mcp()\ntoolset = McpToolset(url=url)[/green]",
+        "• Zero hardcoded endpoints in code\n• Seamless zero-downtime cutovers\n• Instant centralized kill-switch"
+    )
+    console.print(contrast_table)
+
+    code_snippet = '''# ==============================================================================
+# LOOK CLOSELY: ZERO HARDCODED TOOL URLS IN THIS FILE!
+# All tool endpoints are dynamically resolved via Google Cloud Agent Registry
+# and verified against approved Outbound Bindings and Model Armor Floor Settings.
+# ==============================================================================
+
+def resolve_governed_mcp_endpoint() -> Tuple[str, Dict, Dict]:
+    # 1. Query Agent Registry MCP for approved Outbound Bindings
+    bindings_data = call_registry_tool("fetch_available_bindings", {
+        "parent": PARENT,
+        "sourceIdentifier": "urn:agent:finserv-auditor"
+    })
+    active_binding = bindings_data["bindings"][0]
+
+    # 2. Dynamically discover the active, vetted MCP server endpoint
+    servers_data = call_registry_tool("search_mcp_servers", {
+        "parent": PARENT,
+        "searchString": "ledger"
+    })
+    discovered_url = servers_data["mcpServers"][0]["interfaces"][0]["url"]
+
+    # 3. Return resolved endpoint (Zero Hardcoded URLs!)
+    return discovered_url, active_binding, server
+
+# Dynamic Runtime Toolset Initialization in ADK
+discovered_url, binding, _ = resolve_governed_mcp_endpoint()
+conn_params = StreamableHTTPConnectionParams(url=discovered_url, headers=auth_headers)
+toolset = McpToolset(connection_params=conn_params)
+agent = Agent(model="gemini-3.8-flash", tools=[toolset])'''
+
+    console.print(Panel(
+        Syntax(code_snippet, "python", theme="monokai", line_numbers=True),
+        title="[bold green]dynamic_mcp_agent.py (Autonomous ADK Implementation)[/bold green]",
+        border_style="green",
+        subtitle="[dim]Zero Hardcoded URLs • Runtime Binding & Catalog Resolution[/dim]"
+    ))
+
+
 def list_meta_tools():
     """Enumerate the 20 built-in governance tools grouped by Read vs. Write operations."""
     console.print(Panel(
         f"[bold cyan]Google Cloud Agent Registry Remote MCP Server — 20 Built-in Meta-Tools[/bold cyan]\n"
         f"Gateway: [bold white]{AGENT_REGISTRY_MCP_URL}[/bold white]\n"
-        f"Project: [bold yellow]{PROJECT_ID}[/bold yellow] | Location: [bold yellow]{REGION}[/bold yellow]",
+        f"Scope: [bold yellow]Enterprise Remote Governance[/bold yellow] | Location: [bold yellow]{REGION}[/bold yellow]",
         title="Agent Registry Meta-Tool Discovery",
         border_style="cyan"
     ))
@@ -812,6 +877,8 @@ def main():
     parser = argparse.ArgumentParser(description="Google Cloud Agent Registry MCP Control Plane")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
+    subparsers.add_parser("show-agent-code", help="Inspect autonomous agent code proving zero hardcoded tool endpoints")
+    subparsers.add_parser("inspect-agent-code", help="Alias for show-agent-code")
     subparsers.add_parser("show-onboarding-specs", help="Show all 3 Onboarding Pipelines & CQRS architecture")
     subparsers.add_parser("explain-paths", help="Alias for show-onboarding-specs")
     subparsers.add_parser("list-meta-tools", help="Enumerate built-in Agent Registry governance tools grouped by Read vs. Write")
@@ -828,7 +895,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.subcommand in ("show-onboarding-specs", "explain-paths"):
+    if args.subcommand in ("show-agent-code", "inspect-agent-code"):
+        show_agent_code()
+    elif args.subcommand in ("show-onboarding-specs", "explain-paths"):
         show_onboarding_specs()
     elif args.subcommand == "list-meta-tools":
         list_meta_tools()

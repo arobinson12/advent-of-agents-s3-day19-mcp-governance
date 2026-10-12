@@ -41,7 +41,7 @@ def resolve_project_env():
     return project_id, region, project_number
 
 PROJECT_ID, REGION, PROJECT_NUMBER = resolve_project_env()
-PROMPT_STRING = f"\033[1;32mahmad@finserv-secops\033[0m:\033[1;34m~/advent-day19-demo\033[0m (\033[1;33m{PROJECT_ID}\033[0m)$ "
+PROMPT_STRING = "\033[1;32mahmad@finserv-secops\033[0m:\033[1;34m~/advent-day19-demo\033[0m$ "
 
 
 def read_single_key() -> str:
@@ -63,35 +63,38 @@ def read_single_key() -> str:
 def print_hud(stage_title: str, step_desc: str, hud_state: Dict[str, str]):
     """Render persistent visual Governance Control Plane HUD panel on screen."""
     hud_table = Table.grid(expand=True)
-    hud_table.add_column(style="bold yellow", width=24)
-    hud_table.add_column(style="white", width=86)
+    hud_table.add_column(style="bold yellow", width=22)
+    hud_table.add_column(style="white", width=88)
 
     hud_table.add_row("Current Stage:", f"[bold cyan]{stage_title}[/bold cyan] ➔ [white]{step_desc}[/white]")
     hud_table.add_row("Model Armor Floor:", f"[bold magenta]{hud_state.get('model_armor', 'GOOGLE_MCP_SERVER=INSPECT_AND_BLOCK')}[/bold magenta]")
-    hud_table.add_row("Logical URN (Client):", f"[bold green]{hud_state.get('logical_urn', 'urn:mcp:projects-...:finserv-ledger-mcp')}[/bold green]")
-    hud_table.add_row("Physical Tool URI:", f"[cyan]{hud_state.get('physical_uri', 'https://finserv-ledger-mcp-v1-.../mcp')}[/cyan]")
+    hud_table.add_row("Active Tool Endpoint:", f"[cyan]{hud_state.get('physical_uri', 'https://finserv-ledger-mcp-v1-.../mcp')}[/cyan]")
     hud_table.add_row("Outbound Binding:", f"{hud_state.get('binding_state', '[bold green]APPROVED & BOUND (finserv-auditor ➔ finserv-ledger)[/bold green]')}")
 
     console.print(Panel(
         hud_table,
         title="[bold white]ENTERPRISE GOVERNANCE CONTROL PLANE HUD[/bold white]",
         border_style="cyan",
-        subtitle="[dim]Google Cloud Agent Registry (agentregistry.googleapis.com/mcp) | Advent of Agents S3: Day 19[/dim]"
+        subtitle="[dim]Google Cloud Agent Registry (agentregistry.googleapis.com/mcp) | Region: us-central1[/dim]"
     ))
 
 
 def type_and_run(
     cmd: str,
-    act_title: str,
+    stage_title: str,
     step_num: int,
     step_desc: str,
     hud_state: Dict[str, str],
     mode: str = "auto"
 ):
     """
-    Simulate human command typing with 3 modes and persistent HUD.
+    Simulate human command typing with persistent HUD and clean terminal positioning.
+    Keeps terminal stationary at the top of the viewport so the presenter never has to scroll up.
     """
-    print_hud(act_title, f"Step {step_num}: {step_desc}", hud_state)
+    if mode != "non-interactive":
+        console.clear()
+
+    print_hud(stage_title, f"Step {step_num}: {step_desc}", hud_state)
     sys.stdout.write(PROMPT_STRING)
     sys.stdout.flush()
 
@@ -158,16 +161,30 @@ def type_and_run(
         console.print(f"[bold red]Command exited with code {result.returncode}[/bold red]")
     console.print("")
 
+    # Stationary review pause: allows presenter to speak to audience without screen scrolling away
+    if mode != "non-interactive" and sys.stdin.isatty():
+        sys.stdout.write(" \033[1;36m▶\033[0m \033[2m[Step complete. Press ENTER or SPACE to proceed to next stage]\033[0m")
+        sys.stdout.flush()
+        read_single_key()
+
 
 def run_stage_show(mode: str = "auto"):
+    if mode != "non-interactive":
+        console.clear()
+
     console.print(Panel(
         f"[bold cyan]ADVENT OF AGENTS SEASON 3 — DAY 19[/bold cyan]\n"
         f"[bold green]Dynamic MCP Governance: Eliminating Hardcoded Tool Endpoints[/bold green]\n"
-        f"GCP Project: [bold yellow]{PROJECT_ID}[/bold yellow] | Region: [bold yellow]{REGION}[/bold yellow]\n"
+        f"Environment: [bold yellow]Enterprise Production[/bold yellow] | Region: [bold yellow]{REGION}[/bold yellow]\n"
         f"Execution Mode: [bold magenta]{mode.upper()}[/bold magenta] (Options: default auto-type, --live-keys, --non-interactive)",
         title="🎥 Studio Recording Stage Show",
         border_style="green"
     ))
+
+    if mode != "non-interactive" and sys.stdin.isatty():
+        sys.stdout.write(" \033[1;36m▶\033[0m \033[2m[Press ENTER or SPACE to launch Stage 1]\033[0m")
+        sys.stdout.flush()
+        read_single_key()
 
     # Initial Ready HUD State
     ledger_v1_url = f"https://finserv-ledger-mcp-v1-{PROJECT_NUMBER}.{REGION}.run.app/mcp"
@@ -182,75 +199,81 @@ def run_stage_show(mode: str = "auto"):
     }
 
     # ==========================================================================
-    # Stage 1: The Problem & Scale Architecture (Commands 1-3)
+    # Stage 1: The Problem & Scale Architecture (Commands 1-4)
     # ==========================================================================
     stage1 = "Stage 1: The Problem & Scale Ingestion Architecture"
     type_and_run(
+        "python3 registry_control_plane.py show-agent-code",
+        stage1, 1, "Inspect Agent Runtime Architecture: Eliminating Hardcoded MCP URLs",
+        hud_state, mode
+    )
+
+    type_and_run(
         "python3 registry_control_plane.py show-onboarding-specs",
-        stage1, 1, "Examine the 3 Onboarding Pipelines (Auto-Ingest, ToolSpec, Terraform IaC)",
+        stage1, 2, "Examine the 3 Onboarding Pipelines (Auto-Ingest, ToolSpec, Terraform IaC)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 registry_control_plane.py list-meta-tools",
-        stage1, 2, "Enumerate 20 Built-in Governance Meta-Tools on Agent Registry Remote MCP",
+        stage1, 3, "Enumerate 20 Built-in Governance Meta-Tools on Agent Registry Remote MCP",
         hud_state, mode
     )
 
     type_and_run(
         "python3 registry_control_plane.py onboard-all",
-        stage1, 3, "Onboard All 3 Service Types (MCP, Agent, REST) & Outbound Binding",
+        stage1, 4, "Onboard All 3 Service Types (MCP, Agent, REST) & Outbound Binding",
         hud_state, mode
     )
 
     # ==========================================================================
-    # Stage 2: Zero-Hardcoded-URL Autonomous Execution (Commands 4-5)
+    # Stage 2: Zero-Hardcoded-URL Autonomous Execution (Commands 5-6)
     # ==========================================================================
     stage2 = "Stage 2: Zero-Hardcoded-URL Autonomous Execution"
     type_and_run(
         "python3 registry_control_plane.py inspect-catalog",
-        stage2, 4, "Inspect CQRS Projection Table (Writable Services ➔ Read-Only Catalog)",
+        stage2, 5, "Inspect CQRS Projection Table (Writable Services ➔ Read-Only Catalog)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        stage2, 5, "Execute Governed ADK Agent (Runtime Resolution via Gemini 3.8 Flash)",
+        stage2, 6, "Execute Governed ADK Agent (Runtime Resolution via Gemini 3.8 Flash)",
         hud_state, mode
     )
 
     # ==========================================================================
-    # Stage 3: Zero-Downtime Governance Cutover (Commands 6-7)
+    # Stage 3: Zero-Downtime Governance Cutover (Commands 7-8)
     # ==========================================================================
     stage3 = "Stage 3: Zero-Downtime Governance Cutover (v1 ➔ v2)"
     hud_state["physical_uri"] = f"[bold green]{ledger_v2_url} (v2 Post-Quantum Hardened)[/bold green]"
     type_and_run(
         "python3 registry_control_plane.py cutover-v2",
-        stage3, 6, "Promote v2 Hardened Endpoint (Logical URN & Outbound Binding Invariance)",
+        stage3, 7, "Promote v2 Hardened Endpoint (Logical URN & Outbound Binding Invariance)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        stage3, 7, "Execute Same Agent Without Any Code Modifications (Seamless v2 Routing)",
+        stage3, 8, "Execute Same Agent Without Any Code Modifications (Seamless v2 Routing)",
         hud_state, mode
     )
 
     # ==========================================================================
-    # Stage 4: Emergency Revocation & Model Armor Kill Switch (Commands 8-10)
+    # Stage 4: Emergency Revocation & Model Armor Kill Switch (Commands 9-11)
     # ==========================================================================
     stage4 = "Stage 4: Emergency Revocation & Model Armor Kill Switch"
     hud_state["binding_state"] = "[bold red]REVOKED / QUARANTINED (KILL SWITCH ENFORCED)[/bold red]"
     hud_state["physical_uri"] = "[bold red]BLOCKED / UNMAPPED[/bold red]"
     type_and_run(
         "python3 registry_control_plane.py revoke",
-        stage4, 8, "SecOps Emergency Revocation (Purge Outbound Binding & MCP Service)",
+        stage4, 9, "SecOps Emergency Revocation (Purge Outbound Binding & MCP Service)",
         hud_state, mode
     )
 
     type_and_run(
         "python3 dynamic_mcp_agent.py",
-        stage4, 9, "Agent Invocations Instantly Blocked at Runtime by Central Registry",
+        stage4, 10, "Agent Invocations Instantly Blocked at Runtime by Central Registry",
         hud_state, mode
     )
 
@@ -259,13 +282,16 @@ def run_stage_show(mode: str = "auto"):
     hud_state["physical_uri"] = ledger_v1_url
     type_and_run(
         "python3 registry_control_plane.py onboard-all",
-        stage4, 10, "Reset Environment to Initial Clean v1 Ready-State for Next Recording Take",
+        stage4, 11, "Reset Environment to Initial Clean v1 Ready-State for Next Recording Take",
         hud_state, mode
     )
 
+    if mode != "non-interactive":
+        console.clear()
+
     console.print(Panel(
-        f"[bold green]✓ ALL 4 STAGES & 10 COMMANDS EXECUTED SUCCESSFULLY![/bold green]\n"
-        f"Environment reset to clean v1 ready-state in project [bold yellow]{PROJECT_ID}[/bold yellow].\n"
+        f"[bold green]✓ ALL 4 STAGES & 11 COMMANDS EXECUTED SUCCESSFULLY![/bold green]\n"
+        f"Environment reset to clean v1 ready-state in enterprise production.\n"
         f"You are completely ready to film Advent of Agents Season 3 — Day 19!",
         title="🎬 Theatrical Stage Show Complete",
         border_style="green"
