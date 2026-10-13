@@ -1,12 +1,12 @@
 {
-  "name": "finserv-auditor-agent",
-  "description": "Autonomous financial services auditing agent powered by Google ADK that audits wire transfers, reconciles ledger balances, and enforces compliance policies.",
+  "name": "secops-auditor",
+  "description": "Autonomous security & compliance auditor agent powered by Google ADK that inspects repository security postures, audits releases, and enforces Model Armor floor policies.",
   "version": "1.0.0",
   "supportedInterfaces": [
     {
       "protocolBinding": "JSONRPC",
       "protocolVersion": "1.0",
-      "url": "https://auditor.finserv.internal/a2a"
+      "url": "https://secops-auditor.internal/a2a"
     }
   ],
   "capabilities": {
@@ -17,17 +17,19 @@
     "text"
   ],
   "defaultOutputModes": [
-    "text"
+    "text",
+    "application/json"
   ],
   "skills": [
     {
-      "id": "audit_wire_transfer",
-      "name": "audit_wire_transfer",
-      "description": "Audits international wire transfers and reconciles ledger balances across core banking corridors.",
+      "id": "audit_github_release",
+      "name": "Audit GitHub Release & Security",
+      "description": "Inspects GitHub repository security posture, release branch protections, and commit integrity via governed MCP tools.",
       "tags": [
-        "auditing",
+        "security",
+        "github",
         "compliance",
-        "wire-transfer"
+        "devsecops"
       ]
     }
   ]

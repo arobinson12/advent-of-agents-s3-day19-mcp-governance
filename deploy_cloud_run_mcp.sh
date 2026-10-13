@@ -3,26 +3,22 @@
 # Advent of Agents Season 3 — Day 19
 # Pipeline 1: Zero-Touch Auto-Ingest (Cloud Run & GKE Workload Auto-Discovery)
 # ==============================================================================
-# This script deploys the sample FastMCP Streamable HTTP servers (v1 and v2)
+# This script deploys the FastMCP Streamable HTTP servers for GitHub (v1 and v2)
 # to Google Cloud Run, demonstrating Pipeline 1 of Agent Registry Ingestion.
 #
 # GOOGLE CLOUD AUTO-DISCOVERY FLAGS & LABELS:
 # 1. Cloud Run MCP Server Auto-Discovery:
-#    gcloud run deploy finserv-ledger-mcp \
+#    gcloud run deploy github-mcp-v1 \
 #      --image=... \
 #      --functional-type=mcp-server \
 #      --set-labels="registry.cloud.google.com/functional-type=mcp-server"
 #
 # 2. Cloud Run Autonomous Agent Auto-Discovery:
-#    gcloud run deploy finserv-auditor-agent \
+#    gcloud run deploy secops-auditor \
 #      --image=... \
 #      --functional-type=agent \
 #      --identity-type=agent-identity \
 #      --set-labels="registry.cloud.google.com/functional-type=agent"
-#
-# 3. GKE Workload Auto-Discovery:
-#    See k8s/gke-auto-register.yaml for:
-#      registry.gke.io/functional-type: "MCP_SERVER" | "AGENT"
 # ==============================================================================
 
 set -eo pipefail
@@ -36,7 +32,7 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 echo "================================================================================"
-echo " Deploying FastMCP Ledger Servers to Cloud Run (Pipeline 1: Auto-Discovery) "
+echo " Deploying FastMCP GitHub Servers to Cloud Run (Pipeline 1: Auto-Discovery) "
 echo " Project: $PROJECT_ID | Region: $REGION"
 echo "================================================================================"
 
@@ -50,29 +46,18 @@ deploy_service() {
 
   echo ""
   echo "--> Deploying ${SERVICE_NAME} (${VERSION_TAG})..."
-  
-  # Attempt deployment with --functional-type=mcp-server if supported,
-  # falling back gracefully to standard deployment with cloud labels.
-  if gcloud run deploy "$SERVICE_NAME" \
-      --source="$SOURCE_DIR" \
-      --region="$REGION" \
-      --project="$PROJECT_ID" \
-      --no-allow-unauthenticated \
-      --set-labels="registry.cloud.google.com/functional-type=mcp-server,version=${VERSION_TAG}" \
-      --functional-type=mcp-server \
-      --quiet 2>/dev/null; then
-    echo "✓ Deployed ${SERVICE_NAME} with native --functional-type=mcp-server flag"
-  else
-    # Fallback to standard Cloud Run deployment with functional-type label
-    gcloud run deploy "$SERVICE_NAME" \
-      --source="$SOURCE_DIR" \
-      --region="$REGION" \
-      --project="$PROJECT_ID" \
-      --no-allow-unauthenticated \
-      --set-labels="registry.cloud.google.com/functional-type=mcp-server,version=${VERSION_TAG}" \
-      --quiet
-    echo "✓ Deployed ${SERVICE_NAME} with registry.cloud.google.com/functional-type label"
-  fi
+
+  # Deploy to Cloud Run with Secret Manager binding for GITHUB_PAT and functional-type label
+  gcloud run deploy "$SERVICE_NAME" \
+    --source="$SOURCE_DIR" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --no-allow-unauthenticated \
+    --set-secrets="GITHUB_PAT=github-mcp-pat:latest" \
+    --labels="functional-type=mcp-server,version=${VERSION_TAG}" \
+    --quiet
+
+  echo "✓ Deployed ${SERVICE_NAME} with registry.cloud.google.com/functional-type label"
 
   local URL
   URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")
@@ -80,18 +65,18 @@ deploy_service() {
   echo "  Streamable HTTP MCP Endpoint: ${URL}/mcp"
 }
 
-# 1. Deploy v1 (Legacy)
-deploy_service "finserv-ledger-mcp-v1" "mcp_servers/ledger_v1" "v1"
+# 1. Deploy GitHub MCP v1 (Baseline)
+deploy_service "github-mcp-v1" "mcp_servers/github_v1" "v1"
 
-# 2. Deploy v2 (Hardened)
-deploy_service "finserv-ledger-mcp-v2" "mcp_servers/ledger_v2" "v2"
+# 2. Deploy GitHub MCP v2 (Zero-Trust Hardened)
+deploy_service "github-mcp-v2" "mcp_servers/github_v2" "v2"
 
-V1_URL=$(gcloud run services describe finserv-ledger-mcp-v1 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
-V2_URL=$(gcloud run services describe finserv-ledger-mcp-v2 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
+V1_URL=$(gcloud run services describe github-mcp-v1 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
+V2_URL=$(gcloud run services describe github-mcp-v2 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
 
 echo ""
 echo "================================================================================"
-echo " Cloud Run MCP Servers Successfully Deployed!"
-echo " LEDGER_V1_URL: ${V1_URL}"
-echo " LEDGER_V2_URL: ${V2_URL}"
+echo " Cloud Run GitHub MCP Servers Successfully Deployed!"
+echo " GITHUB_V1_URL: ${V1_URL}"
+echo " GITHUB_V2_URL: ${V2_URL}"
 echo "================================================================================"

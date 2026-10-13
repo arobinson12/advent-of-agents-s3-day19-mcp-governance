@@ -10,8 +10,14 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "ledger_mcp_url" {
-  description = "Physical URI for FinServ Ledger MCP Server"
+variable "github_mcp_url" {
+  description = "Physical URI for GitHub MCP Server (Cloud Run v1)"
   type        = string
-  default     = "https://finserv-ledger-mcp-v1-918024802560.us-central1.run.app/mcp"
+  default     = "https://github-mcp-v1-918024802560.us-central1.run.app/mcp"
+}
+
+variable "agent_service_account" {
+  description = "Agent Service Account / Principal to grant roles/agentidentity.user"
+  type        = string
+  default     = "918024802560-compute@developer.gserviceaccount.com"
 }
