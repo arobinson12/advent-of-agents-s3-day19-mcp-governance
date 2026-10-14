@@ -4,7 +4,7 @@
 [![Agent Identity](https://img.shields.io/badge/Agent%20Identity-AuthProvider-purple.svg)](https://cloud.google.com/agent-identity)
 [![Model Armor](https://img.shields.io/badge/Model%20Armor-INSPECT__AND__BLOCK-red.svg)](https://cloud.google.com/security/model-armor)
 [![Google ADK](https://img.shields.io/badge/Google%20ADK-Agent%20Development%20Kit-green.svg)](https://github.com/google/adk)
-[![Gemini 2.5 Flash](https://img.shields.io/badge/Vertex%20AI-Gemini%202.5%20Flash-orange.svg)](https://cloud.google.com/vertex-ai)
+[![Gemini 3.8 Flash](https://img.shields.io/badge/Vertex%20AI-Gemini%203.8%20Flash-orange.svg)](https://cloud.google.com/vertex-ai)
 
 > **Eliminating Hardcoded Tool Endpoints and Local Secret Proliferation in Autonomous AI Agents using Google Cloud Agent Registry, Agent Identity AuthProviders, Outbound Bindings, and Model Armor.**
 
@@ -126,7 +126,7 @@ The stage show simulates live typing with a stationary, high-contrast visual HUD
    ```bash
    python3 dynamic_mcp_agent.py
    ```
-   *Agent dynamically discovers `v1` endpoint via Agent Registry, queries real GitHub repo security posture via Gemini 2.5 Flash, with zero hardcoded URLs and zero secrets in code.*
+   *Agent dynamically discovers `v1` endpoint via Agent Registry, queries real GitHub repo security posture via Gemini 3.8 Flash, with zero hardcoded URLs and zero secrets in code.*
 
 3. **Act 3a — Zero-Downtime Cutover from `github-mcp-v1` to `github-mcp-v2`:**
    ```bash

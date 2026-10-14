@@ -335,7 +335,7 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
         f"[bold blue]🚀 Initializing Autonomous ADK Auditor Agent[/bold blue]\n"
         f"Source Agent: [bold yellow]{SOURCE_AGENT_URN}[/bold yellow]\n"
         f"Target Repository: [white]arobinson12/advent-of-agents-s3-day19-mcp-governance[/white]\n"
-        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + ADK + Gemini 2.5 Flash[/bold magenta]",
+        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + ADK + Gemini 3.8 Flash[/bold magenta]",
         title="Governed Agent Execution",
         border_style="blue"
     ))
@@ -363,7 +363,7 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
     # Configure ADK Agent with dynamically bound toolset
     agent = Agent(
         name="SecOpsGitHubAuditor",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction=(
             "You are an enterprise SecOps and compliance auditor. When auditing repository security, "
             "always call inspect_github_repo_security and report the exact repository status, server version, "
@@ -380,7 +380,7 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
         parts=[types.Part.from_text(text=f"{query}. Be specific about the server version and security audit notes.")]
     )
 
-    console.print("[dim]Executing Gemini 2.5 Flash via ADK Runner with dynamic tool verification...[/dim]")
+    console.print("[dim]Executing Gemini 3.8 Flash via ADK Runner with dynamic tool verification...[/dim]")
     agent_replies = []
     async for event in runner.run_async(session_id=session.id, user_id="secops_admin", new_message=user_content):
         if hasattr(event, "content") and event.content:
