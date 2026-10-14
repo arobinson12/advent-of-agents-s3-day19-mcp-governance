@@ -1,0 +1,36 @@
+{
+  "name": "secops-auditor",
+  "description": "Autonomous security & compliance auditor agent powered by Google ADK that inspects repository security postures, audits releases, and enforces Model Armor floor policies.",
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    {
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0",
+      "url": "https://secops-auditor-918024802560.us-central1.run.app/a2a"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "audit_github_release",
+      "name": "Audit GitHub Release & Security",
+      "description": "Inspects GitHub repository security posture, release branch protections, and commit integrity via governed MCP tools.",
+      "tags": [
+        "security",
+        "github",
+        "compliance",
+        "devsecops"
+      ]
+    }
+  ]
+}

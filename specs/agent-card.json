@@ -6,7 +6,7 @@
     {
       "protocolBinding": "JSONRPC",
       "protocolVersion": "1.0",
-      "url": "https://secops-auditor.internal/a2a"
+      "url": "https://secops-auditor-918024802560.us-central1.run.app/a2a"
     }
   ],
   "capabilities": {

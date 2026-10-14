@@ -71,12 +71,32 @@ deploy_service "github-mcp-v1" "mcp_servers/github_v1" "v1"
 # 2. Deploy GitHub MCP v2 (Zero-Trust Hardened)
 deploy_service "github-mcp-v2" "mcp_servers/github_v2" "v2"
 
+# 3. Deploy Autonomous SecOps Auditor Agent (Pipeline 1: Agent Identity Auto-Ingest)
+echo ""
+echo "--> Deploying secops-auditor (Autonomous Agent with Agent Identity Workload)..."
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+AGENT_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+gcloud run deploy secops-auditor \
+  --source="agent_service" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --service-account="$AGENT_SA" \
+  --no-allow-unauthenticated \
+  --labels="functional-type=agent,identity-type=agent-identity" \
+  --quiet
+
+echo "✓ Deployed secops-auditor with functional-type=agent & identity-type=agent-identity"
+
 V1_URL=$(gcloud run services describe github-mcp-v1 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
 V2_URL=$(gcloud run services describe github-mcp-v2 --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/mcp
+AGENT_URL=$(gcloud run services describe secops-auditor --region="$REGION" --project="$PROJECT_ID" --format="value(status.url)")/a2a
 
 echo ""
 echo "================================================================================"
-echo " Cloud Run GitHub MCP Servers Successfully Deployed!"
+echo " Cloud Run Workloads Successfully Deployed!"
 echo " GITHUB_V1_URL: ${V1_URL}"
 echo " GITHUB_V2_URL: ${V2_URL}"
+echo " AGENT_URL:     ${AGENT_URL}"
+echo " AGENT_IDENTITY: ${AGENT_SA} (Bound to authProviders/github-auth)"
 echo "================================================================================"

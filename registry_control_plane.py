@@ -97,8 +97,24 @@ def get_cloud_run_mcp_url(service_name: str, fallback_tag: str = "v1") -> str:
     return f"https://{service_name}-gcmp33r4ma-uc.a.run.app/mcp"
 
 
+def get_cloud_run_service_url(service_name: str, path: str = "") -> str:
+    """Discover live Cloud Run service URL."""
+    try:
+        url = subprocess.check_output([
+            "gcloud", "run", "services", "describe", service_name,
+            f"--region={REGION}", f"--project={PROJECT_ID}",
+            "--format=value(status.url)"
+        ], stderr=subprocess.DEVNULL).decode().strip()
+        if url:
+            return f"{url}{path}"
+    except Exception:
+        pass
+    return f"https://{service_name}-{PROJECT_NUMBER}.{REGION}.run.app{path}"
+
+
 GITHUB_V1_URL = os.environ.get("GITHUB_V1_URL", get_cloud_run_mcp_url("github-mcp-v1", "v1"))
 GITHUB_V2_URL = os.environ.get("GITHUB_V2_URL", get_cloud_run_mcp_url("github-mcp-v2", "v2"))
+SECOPS_AUDITOR_URL = os.environ.get("SECOPS_AUDITOR_URL", get_cloud_run_service_url("secops-auditor", "/a2a"))
 
 # Service IDs
 SERVICE_ID = "github-mcp"
@@ -372,11 +388,24 @@ def onboard_github_mcp_and_binding():
                 "service": {
                     "displayName": "SecOps Compliance & Release Auditor Agent",
                     "description": agent_card_data.get("description", "Autonomous security & compliance auditor agent"),
+                    "interfaces": [{"url": SECOPS_AUDITOR_URL, "protocolBinding": "JSONRPC"}],
                     "agentSpec": {
                         "type": "A2A_AGENT_CARD",
                         "content": agent_card_data
                     }
                 }
+            }
+        })
+    else:
+        call_registry_mcp("tools/call", {
+            "name": "update_service",
+            "arguments": {
+                "service": {
+                    "name": SOURCE_AGENT_RESOURCE_NAME,
+                    "description": agent_card_data.get("description", "Autonomous security & compliance auditor agent"),
+                    "interfaces": [{"url": SECOPS_AUDITOR_URL, "protocolBinding": "JSONRPC"}]
+                },
+                "updateMask": "interfaces,description"
             }
         })
 
@@ -506,8 +535,8 @@ def inspect_catalog_table():
         f"services/{SOURCE_AGENT_ID}",
         "Agent (A2A)",
         SOURCE_AGENT_URN,
-        "https://secops-auditor.internal/a2a",
-        "Agent Identity (IAM Workload)"
+        SECOPS_AUDITOR_URL,
+        f"Agent Identity ({PROJECT_NUMBER}-compute@...)"
     )
 
     # Row 3: REST Endpoint

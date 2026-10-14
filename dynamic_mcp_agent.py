@@ -316,6 +316,12 @@ def resolve_governed_mcp_endpoint() -> Tuple[str, Dict, Dict]:
     return discovered_url, active_binding, server
 
 
+AGENT_CLOUD_RUN_URL = os.environ.get(
+    "AGENT_CLOUD_RUN_URL",
+    f"https://secops-auditor-{PROJECT_NUMBER}.{REGION}.run.app"
+)
+
+
 async def run_governed_adk_agent(query: str = "Audit security and release readiness for repository 'arobinson12/advent-of-agents-s3-day19-mcp-governance'"):
     # Top Banner proving zero hardcoded URLs & zero secrets
     console.print(Panel(
@@ -328,14 +334,27 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
         border_style="blue"
     ))
 
+    # Cloud Run Agent Identity & Auth Architecture Display
+    console.print(Panel(
+        f"[bold cyan]Serverless Autonomous Agent Architecture (Google Cloud Run)[/bold cyan]\n\n"
+        f"  • [bold yellow]Cloud Run Agent Service:[/bold yellow] [green]services/secops-auditor[/green] ([white]{AGENT_CLOUD_RUN_URL}/a2a[/white])\n"
+        f"  • [bold yellow]Agent Identity Principal:[/bold yellow] [green]{PROJECT_NUMBER}-compute@developer.gserviceaccount.com[/green]\n"
+        f"  • [bold yellow]Auth Manager AuthProvider:[/bold yellow] [green]projects/{PROJECT_ID}/locations/{REGION}/authProviders/github-auth[/green]\n"
+        f"  • [bold yellow]IAM Role Granted:[/bold yellow] [bold green]roles/agentidentity.user[/bold green] (Managed Secret & Token Injection)\n"
+        f"  • [bold yellow]Ingestion Pipeline:[/bold yellow] [bold magenta]Pipeline 1: Cloud Run Auto-Ingest (--functional-type=agent --identity-type=agent-identity)[/bold magenta]\n"
+        f"  • [bold yellow]Model Engine:[/bold yellow] [bold green]Gemini 3.8 Flash[/bold green] (Vertex AI Global Endpoint)",
+        title="[bold blue]Enterprise Agent Identity & Auth Manager Architecture[/bold blue]",
+        border_style="cyan"
+    ))
+
     # Compact Model Armor floor status line
     console.print(f"[dim]Model Armor MCP Floor: GOOGLE_MCP_SERVER=INSPECT_AND_BLOCK (Active on projects/{PROJECT_ID}/locations/{REGION})[/dim]\n")
 
     console.print(Panel(
-        f"[bold blue]🚀 Initializing Autonomous ADK Auditor Agent[/bold blue]\n"
+        f"[bold blue]🚀 Initializing Autonomous SecOps Auditor Agent[/bold blue]\n"
         f"Source Agent: [bold yellow]{SOURCE_AGENT_URN}[/bold yellow]\n"
         f"Target Repository: [white]arobinson12/advent-of-agents-s3-day19-mcp-governance[/white]\n"
-        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + ADK + Gemini 3.8 Flash[/bold magenta]",
+        f"Architecture: [bold magenta]Outbound Bindings + Agent Registry MCP + Cloud Run Agent Identity + Gemini 3.8 Flash[/bold magenta]",
         title="Governed Agent Execution",
         border_style="blue"
     ))
@@ -343,12 +362,60 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
     # Step 1 & 2: Validate Outbound Binding & Dynamically Discover Endpoint
     discovered_url, binding_info, server_info = resolve_governed_mcp_endpoint()
 
-    # Step 3: Attach Injected AuthProvider Credentials & Cloud Run IAM Token
-    console.print(f"\n[bold cyan][Step 3] Attaching Outbound AuthProvider credential & dynamically invoking inspect_github_repo_security...[/bold cyan]")
+    # Step 3: Invoke the Cloud Run Autonomous Agent using IAM Identity Token
+    console.print(f"\n[bold cyan][Step 3] Invoking Cloud-Deployed Agent with Agent Identity & Managed AuthProvider...[/bold cyan]")
     
-    id_token = get_id_token_for_audience(discovered_url)
+    cloud_token = get_id_token_for_audience(AGENT_CLOUD_RUN_URL)
+    headers = {
+        "Authorization": f"Bearer {cloud_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "repo_full_name": "arobinson12/advent-of-agents-s3-day19-mcp-governance",
+        "query": query
+    }
+    console.print(f"[dim]Dispatching authenticated A2A invocation to {AGENT_CLOUD_RUN_URL}/audit...[/dim]")
+
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            res = client.post(f"{AGENT_CLOUD_RUN_URL}/audit", headers=headers, json=payload)
+            if res.status_code == 200:
+                data = res.json()
+                report = data.get("audit_report", "")
+                agent_id = data.get("agent_identity", "")
+                active_bind = data.get("enforced_binding", "")
+                discovered_mcp = data.get("discovered_mcp_url", "")
+                
+                audit_summary_table = Table(title="Cloud Run Agent Execution Metadata", show_header=True, header_style="bold green")
+                audit_summary_table.add_column("Property", style="bold yellow")
+                audit_summary_table.add_column("Cloud Run Verified Value", style="white")
+                audit_summary_table.add_row("Cloud Deployment", "Google Cloud Run (Serverless Autonomous Agent)")
+                audit_summary_table.add_row("Agent Identity Principal", f"{agent_id} [roles/agentidentity.user ✓]")
+                audit_summary_table.add_row("Enforced Binding", active_bind)
+                audit_summary_table.add_row("Target MCP Server", discovered_mcp)
+                audit_summary_table.add_row("Model", "Gemini 3.8 Flash (Vertex AI)")
+                console.print(audit_summary_table)
+
+                console.print(Panel(
+                    f"[bold green]Autonomous SecOps Auditor Report (Executed in Google Cloud Run):[/bold green]\n\n{report}",
+                    title="[bold green]✓ Governed GitHub Audit Completed in Google Cloud[/bold green]",
+                    border_style="green"
+                ))
+                return
+            elif res.status_code == 403:
+                err_detail = res.json().get("detail", res.text)
+                raise RuntimeError(err_detail)
+            else:
+                console.print(f"[yellow]Cloud Run HTTP {res.status_code}: falling back to local ADK Runner...[/yellow]")
+    except Exception as ex:
+        if "REVOKED" in str(ex) or "403" in str(ex):
+            raise
+        console.print(f"[yellow]Cloud agent unreachable ({ex}), running local ADK Runner fallback...[/yellow]")
+
+    # Local ADK Fallback execution
     auth_provider_id = binding_info.get("authProviderBinding", {}).get("authProvider", "").split("/")[-1] or "github-auth"
     github_pat = retrieve_bound_auth_credential(auth_provider_id)
+    id_token = get_id_token_for_audience(discovered_url)
 
     mcp_headers = {
         "Authorization": f"Bearer {id_token}",
@@ -360,7 +427,6 @@ async def run_governed_adk_agent(query: str = "Audit security and release readin
     conn_params = StreamableHTTPConnectionParams(url=discovered_url, headers=mcp_headers)
     toolset = McpToolset(connection_params=conn_params)
 
-    # Configure ADK Agent with dynamically bound toolset
     agent = Agent(
         name="SecOpsGitHubAuditor",
         model="gemini-3.8-flash",

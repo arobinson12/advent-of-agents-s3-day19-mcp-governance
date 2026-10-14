@@ -1,0 +1,69 @@
+{
+  "displayName": "GitHub Enterprise Security & Audit MCP Server",
+  "description": "Admin-approved 3P GitHub MCP Server with bound AuthProvider for inspecting repositories, branch protections, and commit audits",
+  "mcpServerSpec": {
+    "type": "TOOL_SPEC",
+    "content": {
+      "tools": [
+        {
+          "name": "inspect_github_repo_security",
+          "description": "Inspect security posture, release readiness, and commit integrity of a GitHub repository.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "repo_full_name": {
+                "type": "string",
+                "description": "The full GitHub repository name (e.g. owner/repo)"
+              },
+              "check_type": {
+                "type": "string",
+                "description": "Security audit check type (e.g. release_readiness, branch_protection, commit_integrity)"
+              }
+            },
+            "required": [
+              "repo_full_name"
+            ]
+          },
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "annotations": {
+            "title": "Inspect GitHub Repository Security",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": true
+          }
+        },
+        {
+          "name": "audit_latest_commits",
+          "description": "Audit recent commits for secret leaks, author signatures, and supply-chain integrity.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "repo_full_name": {
+                "type": "string",
+                "description": "The full GitHub repository name (e.g. owner/repo)"
+              }
+            },
+            "required": [
+              "repo_full_name"
+            ]
+          },
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "annotations": {
+            "title": "Audit Latest Commits",
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "idempotentHint": true,
+            "openWorldHint": true
+          }
+        }
+      ]
+    }
+  }
+}
